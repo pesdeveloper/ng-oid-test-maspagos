@@ -229,7 +229,6 @@ export class App implements OnInit , OnDestroy {
   }
 
 
-
   /** Recupera sesión SIN loop:
    *  1) refresh una sola vez por pestaña
    *  2) si falla, prompt=none una sola vez por pestaña
