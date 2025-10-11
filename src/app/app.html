@@ -1,0 +1,159 @@
+<mat-toolbar color="primary">
+  <span>{{title()}}</span>
+</mat-toolbar>
+
+<mat-divider></mat-divider>
+
+<div class="main-container">
+  @if (isAuthenticated(); as auth) {
+    <mat-card>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button mat-raised-button color="warn" (click)="logout()">
+          <mat-icon fontSet="material-icons">logout</mat-icon>
+          Logout
+        </button>
+        <button mat-raised-button color="accent" (click)="mostrarAccessToken()">
+          <mat-icon fontSet="material-icons">visibility</mat-icon>
+          Ver Access Token > consola
+        </button>
+        <button mat-raised-button color="primary" (click)="goUserProfile()">
+          <mat-icon fontSet="material-icons">person</mat-icon>
+          Perfil de usuario
+        </button>
+
+        <button mat-raised-button color="primary" (click)="refreshSession()" [disabled]="refreshing()">
+          <mat-icon fontSet="material-icons" [class.spin]="refreshing()">autorenew</mat-icon>
+          {{ refreshing() ? 'Refreshing…' : 'Refresh session' }}
+        </button>
+
+      </div>
+      <br />
+      <p>Is Authenticated:<strong> {{ auth }}</strong></p>
+    </mat-card>
+  } @else {
+    <mat-card>
+      <button mat-raised-button class="btn-success" (click)="login()">
+        <mat-icon fontSet="material-icons">login</mat-icon>
+        Iniciar sesion
+      </button>
+    </mat-card>
+  }
+
+  <mat-divider></mat-divider>
+  <br />
+
+  <!-- Configuración: normal -->
+  <mat-expansion-panel>
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon fontSet="material-icons">settings</mat-icon>
+        Configuration loaded
+      </mat-panel-title>
+    </mat-expansion-panel-header>
+    <pre>{{ config() | json }}</pre>
+  </mat-expansion-panel>
+
+  <br />
+
+  <!-- Access Token: estilo info -->
+  <mat-expansion-panel class="panel-info" (opened)="loadAccessTokenPayload()">
+    @let atp = accessPayload();
+
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon fontSet="material-icons">vpn_key</mat-icon>
+        Access Token (decoded)
+      </mat-panel-title>
+      <mat-panel-description>
+        @if (atp) { exp: {{ (atp.exp * 1000) | date:'medium' }} } @else { &nbsp; }
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    @if (atp) {
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+        <button mat-stroked-button (click)="copy(accessToken())" [disabled]="!accessToken()">
+          <mat-icon fontSet="material-icons">content_copy</mat-icon>
+          Copiar JWT
+        </button>
+        <button mat-stroked-button (click)="copyJson(atp)">
+          <mat-icon fontSet="material-icons">content_copy</mat-icon>
+          Copiar payload
+        </button>
+      </div>
+      <pre>{{ atp | json }}</pre>
+    } @else {
+      <p style="opacity:.7">Abrí el panel (y logueate) para cargar el payload del access token.</p>
+    }
+  </mat-expansion-panel>
+
+  <br />
+
+  <!-- ID Token: estilo info -->
+  <mat-expansion-panel class="panel-info" (opened)="loadIdTokenPayload()">
+    @let pid = idPayload();
+
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+         <mat-icon fontSet="material-icons">verified_user</mat-icon>
+        ID Token (decoded)
+      </mat-panel-title>
+      <mat-panel-description>
+        @if (pid) { exp: {{ (pid.exp * 1000) | date:'medium' }} } @else { &nbsp; }
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    @if (pid) {
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+        <button mat-stroked-button (click)="copy(idToken())" [disabled]="!idToken()">
+          <mat-icon fontSet="material-icons">content_copy</mat-icon>
+          Copiar JWT
+        </button>
+        <button mat-stroked-button (click)="copyJson(pid)">
+          <mat-icon fontSet="material-icons">content_copy</mat-icon>
+          Copiar payload
+        </button>
+      </div>
+      <pre>{{ pid | json }}</pre>
+    } @else {
+      <p style="opacity:.7">Abrí el panel (y logueate) para cargar el payload del ID token.</p>
+    }
+  </mat-expansion-panel>
+
+   <br />
+
+  <!-- UserInfo -->
+  <mat-expansion-panel class="panel-info" (opened)="loadUserInfo()">
+    <mat-expansion-panel-header>
+      <mat-panel-title class="title-with-icon">
+        <mat-icon fontSet="material-icons">badge</mat-icon>
+        UserInfo
+      </mat-panel-title>
+      <mat-panel-description>
+        @if (userInfo()) {
+          actualizado: {{ userInfoLoadedAt() | date:'mediumTime' }}
+        } @else { &nbsp; }
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    @if (userInfo()) {
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+        <button mat-stroked-button (click)="refreshUserInfo()">
+          <mat-icon fontSet="material-icons">refresh</mat-icon>
+          Actualizar
+        </button>
+        <button mat-stroked-button (click)="copyJson(userInfo())">
+          <mat-icon fontSet="material-icons">content_copy</mat-icon>
+          Copiar JSON
+        </button>
+      </div>
+      <pre>{{ userInfo() | json }}</pre>
+    } @else {
+      <p style="opacity:.7">
+        Abrí el panel (y logueate) para consultar /connect/userinfo.
+      </p>
+    }
+  </mat-expansion-panel>
+
+
+  <router-outlet></router-outlet>
+</div>

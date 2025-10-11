@@ -1,0 +1,92 @@
+
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+
+$primary: mat.m2-define-palette(mat.$m2-indigo-palette);
+$accent:  mat.m2-define-palette(mat.$m2-blue-palette); // o red si querés que 'accent' sea rojo
+$warn:    mat.m2-define-palette(mat.$m2-red-palette);
+
+$theme: mat.m2-define-light-theme((
+  color: (primary: $primary, accent: $accent, warn: $warn),
+));
+
+@include mat.all-component-themes($theme);
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+body {
+  // Default the application to a light color theme. This can be changed to
+  // `dark` to enable the dark color theme, or to `light dark` to defer to the
+  // user's system settings.
+  color-scheme: light;
+
+  // Set a default background, font and text colors for the application using
+  // Angular Material's system-level CSS variables. Learn more about these
+  // variables at https://material.angular.dev/guide/system-variables
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  // Reset the user agent margin.
+  margin: 0;
+}
+/* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* Botón "success" (verde) para mat-raised-button */
+.mat-mdc-raised-button.btn-success {
+  background: #2e7d32 !important;   /* verde success */
+  color: #fff !important;
+  border-radius: 8px;
+}
+.mat-mdc-raised-button.btn-success:hover { filter: brightness(0.96); }
+.mat-mdc-raised-button.btn-success:disabled {
+  background: rgba(46,125,50,.38) !important;
+  color: rgba(255,255,255,.75) !important;
+}
+
+/* Panel estilo "info" (azul suave) */
+.panel-info.mat-expansion-panel {
+  border: 1px solid #cfd8dc;
+  border-radius: 12px;
+  overflow: hidden; /* redondeo también al header/body */
+}
+.panel-info .mat-expansion-panel-header {
+  background: #eeeeee; /* #e8f4ff; azul muy claro */
+  color: #0b6aa2;
+}
+.panel-info.mat-expanded .mat-expansion-panel-header {
+  filter: brightness(0.98);
+}
+.panel-info .mat-expansion-panel-body {
+  background: #f6fbff; /* casi blanco azulado */
+}
+
+/* Opcional: títulos/descr del header un toque más marcados */
+.panel-info .mat-expansion-panel-header-title { font-weight: 600; }
+.panel-info .mat-expansion-panel-header-description { opacity: .85; }
+
+/* styles.scss (global) */
+.mat-mdc-raised-button.btn-success {
+  background: #2e7d32 !important;  /* verde */
+  color: #fff !important;
+  border-radius: 8px;
+}
+.mat-mdc-raised-button.btn-success:hover { filter: brightness(0.96); }
+
+
