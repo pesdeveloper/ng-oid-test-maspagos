@@ -8,6 +8,7 @@ export const authConfig: PassedInitialConfig = {
             strictIssuerValidationOnWellKnownRetrievalOff: true,
             redirectUrl: window.location.origin,
             postLogoutRedirectUri: `${window.location.origin}/logout`,
+            postLoginRoute: 'tasas',
             clientId: 'jsclient',
             //clientId: 'jslegacym2',
             scope: 'openid profile email phone offline_access maspagos',  // jsclient
@@ -17,7 +18,8 @@ export const authConfig: PassedInitialConfig = {
             useRefreshToken: false,
             ignoreNonceAfterRefresh: true,
             triggerRefreshWhenIdTokenExpired: true,
-            autoUserInfo: false, 
+            autoUserInfo: true, 
+            renewUserInfoAfterTokenRenew: true,
             silentRenewUrl: `${window.location.origin}/silent-renew.html`,
             renewTimeBeforeTokenExpiresInSeconds: 120,
             logLevel: LogLevel.Debug,
