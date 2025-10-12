@@ -149,7 +149,8 @@ export class App implements OnInit , OnDestroy {
       const returnUrl = encodeURIComponent(currentUrl);
       const logout = 'logout';
 
-      const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}&logoutPath=${encodeURIComponent(logout)}`;
+      //const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}&logoutPath=${encodeURIComponent(logout)}`;
+      const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}`;
       window.location.href = idpUrl;
     });
   }
