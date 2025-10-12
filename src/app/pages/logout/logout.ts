@@ -18,19 +18,16 @@ export class Logout implements OnInit {
   private router = inject(Router);
   
   ngOnInit(): void {
-    setRecoverDisabled();       // ← marca bandera
-    clearRecoverFlags();
-    // 1) borra tokens/sesión local del cliente (NO cierra la sesión en el IdP)
-    this.oidcSecurityService.logoffLocal();
-    this.router.navigateByUrl('/');
-    // this.oidcSecurityService.checkAuth().subscribe( s => {
-    //   this.router.navigateByUrl('/');
-    // })
-      
-    //});
+    // Deshabilito cualquier intento de recuperación silenciosa
+    // setRecoverDisabled();
+    // clearRecoverFlags();
 
-    // 3) redirigir al home
-    //return;
+    // // Limpio tokens/estado local del cliente (no llama al OP)
+    // // NOTA: venís desde /connect/logout del OP, así que el servidor ya cerró sesión.
+    // this.oidcSecurityService.logoffLocal(); 
+
+    // Navego al home
+    this.router.navigateByUrl('/');
   }
 
 }

@@ -49,31 +49,41 @@ export class App implements OnInit , OnDestroy {
   private readonly oidcSecurityService = inject(OidcSecurityService);
 
   ngOnInit() {
-    //const r = window.location.pathname;
-    //if (r.includes('logout')) {
+    // 1) Si estoy en /logout, NO corro checkAuth (dejo que el componente Logout haga su trabajo)
+    const path = window.location.pathname || '';
+    if (path.startsWith('/logout')) {
+      this.isAuthenticated.set(false);
+      setRecoverDisabled();
+      clearRecoverFlags();
+      this.oidcSecurityService.logoffLocal();       
+    }
+
     this.oidcSecurityService
       .checkAuth()
       .subscribe((loginResponse: LoginResponse) => {
-        const { isAuthenticated, userData, accessToken, idToken, configId } = loginResponse;
+        const { isAuthenticated } = loginResponse;
         this.isAuthenticated.set(isAuthenticated);
+
         if (isAuthenticated) {
-          clearRecoverFlags();    
+          clearRecoverFlags();
           clearRecoverDisabled();
           this.loadAccessTokenPayload();
           this.loadIdTokenPayload();
-          console.log(`New accessToken: ${accessToken}`);
         } else {
-          const r = window.location.pathname;
-          //if (!r.includes('logout')) {
+          // 2) SOLO intento recuperar si NO está deshabilitado explícitamente
+          if (!isRecoverDisabled()) {
             this.tryRecoverAuth();
-          //}
-           
+          } else {
+            // opcional: consumí la bandera para próximas navegaciones
+            clearRecoverDisabled();
+          }
         }
+
         this.oidcSecurityService.getConfiguration().pipe(take(1))
           .subscribe(cfg => this.config.set(cfg as OpenIdConfiguration));
         this.updateClientLabel();
-
-      });
+      }
+    );
 
   }
   
@@ -138,7 +148,7 @@ export class App implements OnInit , OnDestroy {
       const currentUrl = window.location.origin + window.location.pathname;
       const returnUrl = encodeURIComponent(currentUrl);
       const logout = 'logout';
-      
+
       const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}&logoutPath=${encodeURIComponent(logout)}`;
       window.location.href = idpUrl;
     });
