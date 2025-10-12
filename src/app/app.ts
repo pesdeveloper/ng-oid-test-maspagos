@@ -25,7 +25,7 @@ const RECOVER_DISABLED_KEY = 'oidc:recover:disabled';
     MatDividerModule,
     MatExpansionModule,    
     MatCardModule,
-    MatIconModule,
+    MatIconModule
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'
@@ -79,11 +79,41 @@ export class App implements OnInit , OnDestroy {
   }  
 
   logout() {
+ this.oidcSecurityService.logoff().subscribe({
+    next: (res: any) => {
+      // v17 suele traer res?.url; si viene, navegamos manualmente
+      if (res?.url) {
+        window.location.href = res.url;
+        return;
+      }
+      // Fallback si no vino url
+      this.forceEndSessionRedirect();
+    },
+    error: () => this.forceEndSessionRedirect(),
+  });
+    /*
     setRecoverDisabled();
     clearRecoverFlags(); 
     this.oidcSecurityService
       .logoff()
       .subscribe((result) => console.log(result));
+      */
+  }
+
+  private forceEndSessionRedirect(): void {
+    const authority = this.config().authority; // ej: https://idp.tu-dominio
+    const postLogoutRedirectUri = this.config().postLogoutRedirectUri||''; // ej: https://spa/signed-out
+    const idToken = this.idToken() || '';
+
+    // RP-Initiated Logout (OIDC): /connect/logout + params
+    const url =
+      `${authority}/connect/logout` +
+      `?post_logout_redirect_uri=${encodeURIComponent(postLogoutRedirectUri)}` +
+      (idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : '');
+
+    // Navegación “dura” para evitar bucles
+    alert(url);
+    window.location.assign(url);
   }
 
   mostrarAccessToken() {

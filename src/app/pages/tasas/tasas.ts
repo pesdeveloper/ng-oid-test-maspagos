@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-tasas',
@@ -6,6 +6,10 @@ import { Component } from '@angular/core';
   templateUrl: './tasas.html',
   styleUrl: './tasas.scss'
 })
-export class Tasas {
+export class Tasas implements OnInit {
+
+  ngOnInit(): void {
+    console.log('tasas');
+  }
 
 }
