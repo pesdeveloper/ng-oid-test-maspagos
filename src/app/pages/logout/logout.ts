@@ -22,9 +22,15 @@ export class Logout implements OnInit {
     clearRecoverFlags();
     // 1) borra tokens/sesión local del cliente (NO cierra la sesión en el IdP)
     this.oidcSecurityService.logoffLocal();
+    this.router.navigateByUrl('/');
+    // this.oidcSecurityService.checkAuth().subscribe( s => {
+    //   this.router.navigateByUrl('/');
+    // })
+      
+    //});
 
     // 3) redirigir al home
-    this.router.navigateByUrl('/');
+    //return;
   }
 
 }

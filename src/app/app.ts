@@ -7,7 +7,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { LoginResponse, OidcSecurityService, OpenIdConfiguration } from 'angular-auth-oidc-client';
 import { forkJoin, take } from 'rxjs';
 
@@ -44,10 +44,13 @@ export class App implements OnInit , OnDestroy {
 
   refreshing = signal(false);
 
+  private router = inject(Router);
   private http = inject(HttpClient);
   private readonly oidcSecurityService = inject(OidcSecurityService);
 
   ngOnInit() {
+    //const r = window.location.pathname;
+    //if (r.includes('logout')) {
     this.oidcSecurityService
       .checkAuth()
       .subscribe((loginResponse: LoginResponse) => {
@@ -60,7 +63,10 @@ export class App implements OnInit , OnDestroy {
           this.loadIdTokenPayload();
           console.log(`New accessToken: ${accessToken}`);
         } else {
-          this.tryRecoverAuth();
+          const r = window.location.pathname;
+          //if (!r.includes('logout')) {
+            this.tryRecoverAuth();
+          //}
            
         }
         this.oidcSecurityService.getConfiguration().pipe(take(1))
@@ -68,6 +74,7 @@ export class App implements OnInit , OnDestroy {
         this.updateClientLabel();
 
       });
+
   }
   
   ngOnDestroy() {
@@ -79,25 +86,25 @@ export class App implements OnInit , OnDestroy {
   }  
 
   logout() {
- this.oidcSecurityService.logoff().subscribe({
-    next: (res: any) => {
-      // v17 suele traer res?.url; si viene, navegamos manualmente
-      if (res?.url) {
-        window.location.href = res.url;
-        return;
-      }
-      // Fallback si no vino url
-      this.forceEndSessionRedirect();
-    },
-    error: () => this.forceEndSessionRedirect(),
-  });
-    /*
+//  this.oidcSecurityService.logoff().subscribe({
+//     next: (res: any) => {
+//       // v17 suele traer res?.url; si viene, navegamos manualmente
+//       if (res?.url) {
+//         window.location.href = res.url;
+//         return;
+//       }
+//       // Fallback si no vino url
+//       this.forceEndSessionRedirect();
+//     },
+//     error: () => this.forceEndSessionRedirect(),
+//   });
+    
     setRecoverDisabled();
     clearRecoverFlags(); 
     this.oidcSecurityService
       .logoff()
       .subscribe((result) => console.log(result));
-      */
+    
   }
 
   private forceEndSessionRedirect(): void {
@@ -130,8 +137,9 @@ export class App implements OnInit , OnDestroy {
       const clientId = (s as OpenIdConfiguration).clientId;
       const currentUrl = window.location.origin + window.location.pathname;
       const returnUrl = encodeURIComponent(currentUrl);
-
-      const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}`;
+      const logout = 'logout';
+      
+      const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}&logoutPath=${encodeURIComponent(logout)}`;
       window.location.href = idpUrl;
     });
   }
