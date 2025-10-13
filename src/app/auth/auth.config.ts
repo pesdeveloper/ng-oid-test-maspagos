@@ -11,8 +11,8 @@ export const authConfig: PassedInitialConfig = {
             postLoginRoute: 'tasas',
             clientId: 'jsclient',
             //clientId: 'jslegacym2',
-            scope: 'openid profile email phone offline_access maspagos',  // jsclient
-            //scope: 'openid profile email phone offline_access org employee employment expedientes', // jslegacym2
+            scope: 'openid profile email phone offline_access ingresos',  // jsclient
+            //scope: 'openid profile email phone offline_access org employee employment expedientes ingresos habilitaciones faltas', // jslegacym2
             responseType: 'code',
             silentRenew: true,
             useRefreshToken: false,
@@ -23,5 +23,9 @@ export const authConfig: PassedInitialConfig = {
             silentRenewUrl: `${window.location.origin}/silent-renew.html`,
             renewTimeBeforeTokenExpiresInSeconds: 120,
             logLevel: LogLevel.Debug,
+            // 🔑 Muy importante: el interceptor solo agrega el token si la URL empieza con uno de estos prefijos
+            secureRoutes: [
+              'https://sb-comon-api.malvinasargentinas.gob.ar',
+            ],            
         }
 }

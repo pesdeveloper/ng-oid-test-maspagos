@@ -16,29 +16,28 @@ export const appConfig: ApplicationConfig = {
     provideAuth(authConfig),
     provideHttpClient(
       withFetch(),
-      // withXsrfConfiguration({
-      //   cookieName: 'XSRF-TOKEN',
-      //   headerName: 'X-XSRF-TOKEN',
-      // }),  
-      //withInterceptors([authInterceptor(), xsrfCrossSiteInterceptor]),
-      withInterceptors([authInterceptor()]),
+      withXsrfConfiguration({
+        cookieName: 'XSRF-TOKEN',
+        headerName: 'X-XSRF-TOKEN',
+      }),  
+      withInterceptors([authInterceptor(), xsrfCrossSiteInterceptor]),
     ), 
-    // {
-    //   provide: 'ANTIFORGERY_TOKEN_LOADER',
-    //   multi: true,
-    //   useFactory: () => {
-    //     const http = inject(HttpClient);
-    //     return firstValueFrom(
-    //       http.get('https://localhost:5141/antiforgery/token', {
-    //         withCredentials: true,
-    //         responseType: 'text' as const,
-    //       }).pipe(
-    //         map(() => void 0),
-    //         catchError(() => of(void 0))
-    //       )
-    //     );
-    //   }
-    // },
+    {
+      provide: 'ANTIFORGERY_TOKEN_LOADER',
+      multi: true,
+      useFactory: () => {
+        const http = inject(HttpClient);
+        return firstValueFrom(
+          http.get('https://localhost:5141/antiforgery/token', {
+            withCredentials: true,
+            responseType: 'text' as const,
+          }).pipe(
+            map(() => void 0),
+            catchError(() => of(void 0))
+          )
+        );
+      }
+    },
     
   ]
 };
