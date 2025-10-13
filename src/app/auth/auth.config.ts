@@ -9,10 +9,10 @@ export const authConfig: PassedInitialConfig = {
             redirectUrl: window.location.origin,
             postLogoutRedirectUri: `${window.location.origin}/logout`,
             postLoginRoute: 'tasas',
-            clientId: 'jsclient',
-            //clientId: 'jslegacym2',
-            scope: 'openid profile email phone offline_access ingresos',  // jsclient
-            //scope: 'openid profile email phone offline_access org employee employment expedientes ingresos habilitaciones faltas', // jslegacym2
+            //clientId: 'jsclient',
+            clientId: 'jslegacym2',
+            //scope: 'openid profile email phone offline_access ingresos',  // jsclient
+            scope: 'openid profile email phone offline_access org employee employment entitlements expedientes ingresos tramites', // jslegacym2
             responseType: 'code',
             silentRenew: true,
             useRefreshToken: false,
