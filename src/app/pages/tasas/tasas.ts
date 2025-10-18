@@ -1,8 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BasicService } from '../../core/services/basic.service';
 import { BasicResponse } from '../../core/models/basic.model';
+import { OidcSecurityService, OpenIdConfiguration } from 'angular-auth-oidc-client';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-tasas',
@@ -12,6 +14,9 @@ import { BasicResponse } from '../../core/models/basic.model';
   styleUrl: './tasas.scss'
 })
 export class Tasas implements OnInit {
+
+  private readonly oidcSecurityService = inject(OidcSecurityService);
+  
   // inputs por defecto
   idSuj = signal<number>(1);
   idBie = signal<number>(96);
@@ -20,12 +25,17 @@ export class Tasas implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   data = signal<BasicResponse | null>(null);
+  config = signal<Partial<OpenIdConfiguration>>({});
+  clientId = signal<string | undefined>(undefined);
 
   constructor(private readonly basic: BasicService) {}
 
   ngOnInit(): void {
-    // carga inicial con los valores por defecto
-    this.load();
+    this.oidcSecurityService.getConfiguration().pipe(take(1)).subscribe(cfg => {
+      this.config.set(cfg as OpenIdConfiguration); 
+      this.clientId.set(cfg?.clientId);
+      this.load();
+    });
   }
 
   load(): void {

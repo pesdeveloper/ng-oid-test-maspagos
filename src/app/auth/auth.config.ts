@@ -8,11 +8,20 @@ export const authConfig: PassedInitialConfig = {
             strictIssuerValidationOnWellKnownRetrievalOff: true,
             redirectUrl: window.location.origin,
             postLogoutRedirectUri: `${window.location.origin}/logout`,
-            postLoginRoute: 'tasas',
+
             //clientId: 'jsclient',
+            //scope: 'openid profile email phone offline_access ingresos',
+            //postLoginRoute: 'tasas',
+
+            //clientId: 'js_bod_client',
+            //scope: 'openid profile email phone offline_access tramites',
+            //postLoginRoute: '/',
+
+
             clientId: 'jslegacym2',
-            //scope: 'openid profile email phone offline_access ingresos',  // jsclient
-            scope: 'openid profile email phone offline_access org employee employment entitlements expedientes ingresos tramites', // jslegacym2
+            scope: 'openid profile email phone offline_access org employee employment entitlements tramites', // jslegacym2
+            postLoginRoute: '/',
+
             responseType: 'code',
             silentRenew: true,
             useRefreshToken: false,
