@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -7,359 +6,201 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { Router, RouterOutlet } from '@angular/router';
-import { LoginResponse, OidcSecurityService, OpenIdConfiguration } from 'angular-auth-oidc-client';
-import { forkJoin, take } from 'rxjs';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { OpenIdConfiguration } from 'angular-auth-oidc-client';
+import { filter, Subscription } from 'rxjs';
 
-const RECOVER_REFRESH_TRIED_KEY = 'oidc:recover:refresh:tried';
-const RECOVER_PROMPTNONE_TRIED_KEY = 'oidc:recover:promptnone:tried';
-const RECOVER_DISABLED_KEY = 'oidc:recover:disabled'; 
+import { AuthSessionFacade } from 'mma-sso-session-guard';
+import { environment } from '../environments/environment';
+
+// Si tu tipo está exportado por la lib, usalo desde ahí.
+// Si no, sacá este import y dejá `any` en el subscribe del state.
+import { AuthSessionState } from 'mma-sso-session-guard';
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   imports: [
     RouterOutlet,
-    CommonModule, 
+    CommonModule,
     MatToolbarModule,
     MatButtonModule,
     MatDividerModule,
-    MatExpansionModule,    
+    MatExpansionModule,
     MatCardModule,
-    MatIconModule
+    MatIconModule,
   ],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
-export class App implements OnInit , OnDestroy {
-  title = signal('...');
+export class App implements OnInit, OnDestroy {
+  clientLabel = signal('...');
 
   isAuthenticated = signal(false);
   config = signal<Partial<OpenIdConfiguration>>({});
+
   accessToken = signal<string>('');
   accessPayload = signal<any | null>(null);
+
   idToken = signal<string>('');
   idPayload = signal<any | null>(null);
+
   userInfo = signal<any | null>(null);
   userInfoLoadedAt = signal<Date | null>(null);
 
+  currentPath = signal<string>('/');
+
   refreshing = signal(false);
 
-  private router = inject(Router);
-  private http = inject(HttpClient);
-  private readonly oidcSecurityService = inject(OidcSecurityService);
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthSessionFacade);
 
-  ngOnInit() {
-    // 1) Si estoy en /logout, NO corro checkAuth (dejo que el componente Logout haga su trabajo)
-    const path = window.location.pathname || '';
-    if (path.startsWith('/logout')) {
-      this.isAuthenticated.set(false);
-      setRecoverDisabled();
-      clearRecoverFlags();
-      this.oidcSecurityService.logoffLocal();       
-    }
+  private subs: Subscription[] = [];
 
-    this.oidcSecurityService
-      .checkAuth()
-      .subscribe((loginResponse: LoginResponse) => {
-        const { isAuthenticated } = loginResponse;
-        this.isAuthenticated.set(isAuthenticated);
+  ngOnInit(): void {
+    // 0) bootstrap del facade
+    this.auth.bootstrap();
 
-        if (isAuthenticated) {
-          clearRecoverFlags();
-          clearRecoverDisabled();
-          this.loadAccessTokenPayload();
-          this.loadIdTokenPayload();
-        } else {
-          // 2) SOLO intento recuperar si NO está deshabilitado explícitamente
-          if (!isRecoverDisabled()) {
-            this.tryRecoverAuth();
-          } else {
-            // opcional: consumí la bandera para próximas navegaciones
-            clearRecoverDisabled();
-          }
-        }
-
-        this.oidcSecurityService.getConfiguration().pipe(take(1))
-          .subscribe(cfg => this.config.set(cfg as OpenIdConfiguration));
-        this.updateClientLabel();
-      }
+    // 1) eventos útiles para el dev
+    this.subs.push(
+      this.auth.onLogin$.subscribe(() => console.log('✅ login completado (state=true)'))
     );
 
-  }
-  
-  ngOnDestroy() {
-   
-  }
+    this.subs.push(
+      this.auth.onLogout$.subscribe(() => console.log('✅ logout completado (state=false)'))
+    );
 
-  login() {
-    this.oidcSecurityService.authorize();
-  }  
+    this.subs.push(
+      this.auth.onLogoutRequested$.subscribe(() => {
+        console.log('🟡 logout iniciado (siempre se ejecuta)');
+      })
+    );
 
-  logout() {
-//  this.oidcSecurityService.logoff().subscribe({
-//     next: (res: any) => {
-//       // v17 suele traer res?.url; si viene, navegamos manualmente
-//       if (res?.url) {
-//         window.location.href = res.url;
-//         return;
-//       }
-//       // Fallback si no vino url
-//       this.forceEndSessionRedirect();
-//     },
-//     error: () => this.forceEndSessionRedirect(),
-//   });
-    
-    setRecoverDisabled();
-    clearRecoverFlags(); 
-    this.oidcSecurityService
-      .logoff()
-      .subscribe((result) => console.log(result));
-    
-  }
+    // 2) estado global de sesión (TODO sale de acá)
+    this.subs.push(
+      this.auth.state$.subscribe((s: AuthSessionState) => {
+        this.isAuthenticated.set(!!s.isAuthenticated);
 
-  private forceEndSessionRedirect(): void {
-    const authority = this.config().authority; // ej: https://idp.tu-dominio
-    const postLogoutRedirectUri = this.config().postLogoutRedirectUri||''; // ej: https://spa/signed-out
-    const idToken = this.idToken() || '';
+        if (s.config) {
+          this.config.set(s.config);
+          this.clientLabel.set(this.computeClientLabelFromState(s));
+        } else {
+          this.clientLabel.set('...');
+        }
 
-    // RP-Initiated Logout (OIDC): /connect/logout + params
-    const url =
-      `${authority}/connect/logout` +
-      `?post_logout_redirect_uri=${encodeURIComponent(postLogoutRedirectUri)}` +
-      (idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : '');
+        this.accessToken.set(s.accessToken ?? '');
+        this.accessPayload.set(s.accessPayload ?? null);
 
-    // Navegación “dura” para evitar bucles
-    alert(url);
-    window.location.assign(url);
+        this.idToken.set(s.idToken ?? '');
+        this.idPayload.set(s.idPayload ?? null);
+
+        this.userInfo.set(s.userInfo ?? null);
+        this.userInfoLoadedAt.set(s.userInfoLoadedAt ?? null);
+      })
+    );
+
+    // 3) currentPath (para el botón Tasas/Home)
+    this.currentPath.set(window.location.pathname || '/');
+    this.subs.push(
+      this.router.events
+        .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+        .subscribe(e => this.currentPath.set(e.urlAfterRedirects || '/'))
+    );
   }
 
-  mostrarAccessToken() {
-    this.oidcSecurityService.getAccessToken().subscribe(at => 
-      {
-        console.clear();
-        console.log(`AccessToken = ${at}`);
-      });
+  ngOnDestroy(): void {
+    for (const s of this.subs) s.unsubscribe();
+    this.subs = [];
   }
 
-  goUserProfile() {
-    this.oidcSecurityService.getConfiguration().subscribe(s => {
-      const authority = (s as OpenIdConfiguration).authority;
-      const clientId = (s as OpenIdConfiguration).clientId;
-      const currentUrl = window.location.origin + window.location.pathname;
-      const returnUrl = encodeURIComponent(currentUrl);
-      const logout = 'logout';
+  // --------------------------
+  // UI actions
+  // --------------------------
+  login(): void { this.auth.login(); }
+  logout(): void { this.auth.logout(); }
 
-      //const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}&logoutPath=${encodeURIComponent(logout)}`;
-      const idpUrl = `${authority}/account/profile?client_id=${clientId}&returnUrl=${returnUrl}`;
-      window.location.href = idpUrl;
+  refreshSession(): void {
+    if (this.refreshing()) return;
+    this.refreshing.set(true);
+
+    this.auth.refresh().subscribe({
+      next: _ => this.refreshing.set(false),
+      error: err => {
+        this.refreshing.set(false);
+        console.error('Refresh ERROR', err);
+      },
     });
   }
 
-  // Carga el JWT y su payload cuando abrís el expansion panel
-  loadAccessTokenPayload() {
-    if (!this.isAuthenticated()) {
-      this.accessToken.set('');
-      this.accessPayload.set(null);
-      return;
+  goUserProfile(): void { this.auth.goUserProfile(); }
+
+  mostrarAccessToken(): void {
+    this.auth.getAccessToken().subscribe(at => {
+      console.clear();
+      console.log(`AccessToken = ${at}`);
+    });
+  }
+
+  // --------------------------
+  // Navegación
+  // --------------------------
+  goHabilitaciones(): void {
+    window.location.href = environment.externalSites.habilitacionesSite;
+  }
+
+  goHome(): void { void this.router.navigate(['/']); }
+
+  // --------------------------
+  // Panels loaders
+  // --------------------------
+  loadAccessTokenPayload(): void {
+    // En Opción A no hace falta: el facade mantiene accessPayload en el state.
+    // Lo dejamos vacío a propósito (no rompe el HTML).
+  }
+
+  loadIdTokenPayload(): void {
+    // idem
+  }
+
+  loadUserInfo(): void {
+    // Si tu facade ya lo expone (recomendado):
+    if ((this.auth as any).refreshUserInfo) {
+      (this.auth as any).refreshUserInfo();
     }
-
-    this.oidcSecurityService.getAccessToken().pipe(take(1)).subscribe(at => {
-      this.accessToken.set(at ?? '');
-    });
-
-    this.oidcSecurityService.getPayloadFromAccessToken().pipe(take(1)).subscribe(p => {
-      this.accessPayload.set(p ?? null);
-    });
   }
 
-  // Helpers de copiado
+  refreshUserInfo(): void {
+    if ((this.auth as any).clearUserInfo) {
+      (this.auth as any).clearUserInfo();
+    }
+    if ((this.auth as any).refreshUserInfo) {
+      (this.auth as any).refreshUserInfo();
+    }
+  }
+
+  // --------------------------
+  // Copy helpers
+  // --------------------------
   async copy(text?: string | null) {
     if (!text) return;
-    try { await navigator.clipboard.writeText(text); }
-    catch { /* no-op */ }
+    try { await navigator.clipboard.writeText(text); } catch { /* no-op */ }
   }
 
   async copyJson(obj: any) {
     if (!obj) return;
-    try { await navigator.clipboard.writeText(JSON.stringify(obj, null, 2)); }
-    catch { /* no-op */ }
+    try { await navigator.clipboard.writeText(JSON.stringify(obj, null, 2)); } catch { /* no-op */ }
   }
 
-  loadIdTokenPayload() {
-      if (!this.isAuthenticated()) {
-        this.idToken.set('');
-        this.idPayload.set(null);
-        return;
-      }
+  // --------------------------
+  // Label
+  // --------------------------
+  private computeClientLabelFromState(s: AuthSessionState): string {
+    const idp: any = s.idPayload ?? null;
+    if (idp?.client_name) return String(idp.client_name);
+    if (idp?.azp) return String(idp.azp);
 
-      this.oidcSecurityService.getIdToken().pipe(take(1))
-        .subscribe(it => this.idToken.set(it ?? ''));
-
-      this.oidcSecurityService.getPayloadFromIdToken().pipe(take(1))
-        .subscribe(p => this.idPayload.set(p ?? null));
-  }  
-
-  loadUserInfo() {
-    if (!this.isAuthenticated()) {
-      this.userInfo.set(null);
-      this.userInfoLoadedAt.set(null);
-      return;
-    }
-
-    forkJoin([
-      this.oidcSecurityService.getAccessToken().pipe(take(1)),
-      this.oidcSecurityService.getConfiguration().pipe(take(1))
-    ]).subscribe({
-      next: ([token, cfg]) => {
-        const authority = (cfg as OpenIdConfiguration)?.authority ?? '';
-        if (!token || !authority) {
-          this.userInfo.set({ error: 'missing token/authority' });
-          return;
-        }
-
-        const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-        this.http.get(`${authority}/connect/userinfo`, { headers }).subscribe({
-          next: (data) => {
-            this.userInfo.set(data);
-            this.userInfoLoadedAt.set(new Date());
-          },
-          error: (err) => {
-            this.userInfo.set({
-              error: err?.message ?? 'UserInfo error',
-              status: err?.status,
-            });
-          }
-        });
-      },
-      error: (e) => this.userInfo.set({ error: e?.message ?? 'config/token error' })
-    });
+    const cfg: any = s.config ?? null;
+    const clientId = cfg?.clientId ?? cfg?.client_id ?? null;
+    return clientId ? String(clientId) : 'No client id';
   }
-
-  refreshUserInfo() {
-    this.userInfo.set(null);
-    this.userInfoLoadedAt.set(null);
-    this.loadUserInfo();
-  }
-
-  refreshSession() {
-    if (this.refreshing()) return;
-    this.refreshing.set(true);
-
-    this.oidcSecurityService.forceRefreshSession().pipe(take(1)).subscribe({
-      next: _ => {
-        this.refreshing.set(false);
-        // Refrescar paneles
-        this.loadAccessTokenPayload();
-        this.loadIdTokenPayload();
-        // Si querés reconsultar userinfo automáticamente:
-        // this.refreshUserInfo();
-      },
-      error: err => {
-        this.refreshing.set(false);
-        console.error('Refresh ERROR', err);
-      }
-    });
-  }
-
-  private updateClientLabel() {
-    // primero intento con el id_token
-    this.oidcSecurityService.getPayloadFromIdToken().pipe(take(1)).subscribe(idp => {
-      const claimName = (idp as any)?.client_name || (idp as any)?.azp || (idp as any)?.client_id;
-      if (claimName) {
-        this.title.set(claimName);
-        return;
-      }
-      // fallback a la config
-      this.oidcSecurityService.getConfiguration().pipe(take(1)).subscribe(cfg => {
-        this.title.set((cfg as OpenIdConfiguration).clientId ?? '');
-      });
-    });
-
-  }
-
-
-  /** Recupera sesión SIN loop:
-   *  1) refresh una sola vez por pestaña
-   *  2) si falla, prompt=none una sola vez por pestaña
-   *  3) si también falla, no reintenta (queda para login interactivo)
-   */
-  private tryRecoverAuth() {
-    if (isRecoverDisabled()) {
-      // opcional: console.debug('Recover deshabilitado por logout');
-      return;
-    }
-    // 1) refresh (una sola vez)
-    if (!wasTried(RECOVER_REFRESH_TRIED_KEY)) {
-      markTried(RECOVER_REFRESH_TRIED_KEY);
-      this.oidcSecurityService.forceRefreshSession().pipe(take(1)).subscribe({
-        next: (resp) => {
-          const ok = !!resp?.isAuthenticated;
-          if (ok) {
-            // éxito: rehidratar y limpiar flags
-            clearRecoverFlags();
-            this.isAuthenticated.set(true);
-            this.loadAccessTokenPayload();
-            this.loadIdTokenPayload();
-          } else {
-            // no hay sesión válida: pasar a prompt=none (una sola vez)
-            this.tryPromptNone();
-          }
-        },
-        error: () => {
-          // 2) prompt=none (una sola vez)
-          if (!wasTried(RECOVER_PROMPTNONE_TRIED_KEY)) {
-            markTried(RECOVER_PROMPTNONE_TRIED_KEY);
-            this.tryPromptNone();
-          }
-          // Si ya se intentó prompt=none antes, no hacemos nada más (evita loop)
-        }
-      });
-      return;
-    }
-
-    // Si ya intentamos refresh y llegó acá, probamos prompt=none solo si no se intentó
-    if (!wasTried(RECOVER_PROMPTNONE_TRIED_KEY)) {
-      markTried(RECOVER_PROMPTNONE_TRIED_KEY);
-      this.oidcSecurityService.authorize(undefined, {
-        customParams: { prompt: 'none' }
-      });
-    }
-    // Si ambos ya fueron intentados, NO reintenta automáticamente.
-    // El usuario puede tocar "Login" para un flujo interactivo normal.
-  }
-
-  private tryPromptNone() {
-    if (!wasTried(RECOVER_PROMPTNONE_TRIED_KEY)) {
-      markTried(RECOVER_PROMPTNONE_TRIED_KEY);
-      this.oidcSecurityService.authorize(undefined, {
-        customParams: { prompt: 'none' }
-      });
-      // Importante: no limpiar flags acá; sólo cuando vuelva autenticado
-    }
-  }  
-
-}
-
-// helpers
-function wasTried(key: string) {
-  try { return sessionStorage.getItem(key) === '1'; } catch { return false; }
-}
-function markTried(key: string) {
-  try { sessionStorage.setItem(key, '1'); } catch {}
-}
-function clearRecoverFlags() {
-  try {
-    sessionStorage.removeItem(RECOVER_REFRESH_TRIED_KEY);
-    sessionStorage.removeItem(RECOVER_PROMPTNONE_TRIED_KEY);
-  } catch {}
-}
-
-function isRecoverDisabled() {
-  try { return localStorage.getItem(RECOVER_DISABLED_KEY) === '1'; } catch { return false; }
-}
-function setRecoverDisabled() {
-  try { localStorage.setItem(RECOVER_DISABLED_KEY, '1'); } catch {}
-}
-function clearRecoverDisabled() {
-  try { localStorage.removeItem(RECOVER_DISABLED_KEY); } catch {}
 }

@@ -1,30 +1,21 @@
 import { LogLevel, PassedInitialConfig } from 'angular-auth-oidc-client';
+import { environment } from '../../environments/environment';
 
 export const authConfig: PassedInitialConfig = {
   config: {
-            authority: 'https://sb-idp.malvinasargentinas.gob.ar',
-            //authority: 'https://localhost:7301',
+            authority: environment.authConfig.authority,
             issValidationOff: true,
             strictIssuerValidationOnWellKnownRetrievalOff: true,
             redirectUrl: window.location.origin,
             postLogoutRedirectUri: `${window.location.origin}/logout`,
 
-            //clientId: 'jsclient',
-            //scope: 'openid profile email phone offline_access ingresos',
-            //postLoginRoute: 'tasas',
-
-            //clientId: 'js_bod_client',
-            //scope: 'openid profile email phone offline_access tramites',
-            //postLoginRoute: '/',
-
-
-            clientId: 'jslegacym2',
-            scope: 'openid profile email phone offline_access org employee employment entitlements tramites', // jslegacym2
-            postLoginRoute: '/',
-
+            clientId: 'js_maspagos_client',
+            scope: 'openid profile email phone offline_access ingresos tramites', // jslegacym2
+            postLoginRoute: 'tasas',
+            //OJO startCheckSession: false,
             responseType: 'code',
-            silentRenew: true,
-            useRefreshToken: false,
+            silentRenew: false,
+            useRefreshToken: true,
             ignoreNonceAfterRefresh: true,
             triggerRefreshWhenIdTokenExpired: true,
             autoUserInfo: true, 
@@ -33,8 +24,8 @@ export const authConfig: PassedInitialConfig = {
             renewTimeBeforeTokenExpiresInSeconds: 120,
             logLevel: LogLevel.Debug,
             // 🔑 Muy importante: el interceptor solo agrega el token si la URL empieza con uno de estos prefijos
-            secureRoutes: [
-              'https://sb-comon-api.malvinasargentinas.gob.ar',
-            ],            
+            // secureRoutes: [
+            //   'https://sb-comon-api.malvinasargentinas.gob.ar',
+            // ],            
         }
 }
