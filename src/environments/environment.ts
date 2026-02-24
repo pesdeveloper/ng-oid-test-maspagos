@@ -5,6 +5,6 @@ export const environment = {
     authority: 'https://sb-idp.malvinasargentinas.gob.ar',
   },
   externalSites: {
-    habilitacionesSite: 'https://localhost:4205/datos/rodado/1306?v=RC-12-12345678',
+    habilitacionesSite: 'https://localhost:4205/datos/rodado/1306?v=RC-12-12345679',
   }
 };
