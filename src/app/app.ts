@@ -58,25 +58,10 @@ export class App implements OnInit, OnDestroy {
   private subs: Subscription[] = [];
 
   ngOnInit(): void {
-    // 0) bootstrap del facade
+    // 1) bootstrap del facade (esto DEBE disparar verificación de sesión)
     this.auth.bootstrap();
 
-    // 1) eventos útiles para el dev
-    this.subs.push(
-      this.auth.onLogin$.subscribe(() => console.log('✅ login completado (state=true)'))
-    );
-
-    this.subs.push(
-      this.auth.onLogout$.subscribe(() => console.log('✅ logout completado (state=false)'))
-    );
-
-    this.subs.push(
-      this.auth.onLogoutRequested$.subscribe(() => {
-        console.log('🟡 logout iniciado (siempre se ejecuta)');
-      })
-    );
-
-    // 2) estado global de sesión (TODO sale de acá)
+    // 2) state (TODO sale de acá)
     this.subs.push(
       this.auth.state$.subscribe((s: AuthSessionState) => {
         this.isAuthenticated.set(!!s.isAuthenticated);
@@ -99,7 +84,7 @@ export class App implements OnInit, OnDestroy {
       })
     );
 
-    // 3) currentPath (para el botón Tasas/Home)
+    // 3) (opcional) currentPath para UI
     this.currentPath.set(window.location.pathname || '/');
     this.subs.push(
       this.router.events

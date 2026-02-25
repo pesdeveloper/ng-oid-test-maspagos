@@ -38,20 +38,14 @@ export const appConfig: ApplicationConfig = {
 
     provideSsoSessionGuard({
       appNs: 'maspagos',
-      pingPath: '/api/session/ping',
-      minIntervalMs: 5000,
-      events: ['pageshow'],
-      onlyWhenAuthenticated: false,
-      recoverMode: 'promptNone',
-      forceLoginIfNoIdpSession: false,
       logPrefix: 'MASPAGOS-SSO',
-      defaultLogLevel: SimpleLogLevel.Debug,
-      antiforgery: {
-        enabled: true,
-        path: '/antiforgery/token',
-        run: 'beforePing',
-      },
-      allowedReturnUrlPrefixes: [ '/datos' ],      
-    }),
+      events: ['pageshow'],
+      minIntervalMs: 5000,
+      onlyWhenAuthenticated: true,
+      recoverMode: 'promptNone',
+      pingPath: '/api/session/ping',
+      antiforgery: { enabled: true, path: '/antiforgery/token', run: 'beforePing' },
+      autoBootstrap: false, // ✅ así NO duplicás
+    })    
   ],
 };
