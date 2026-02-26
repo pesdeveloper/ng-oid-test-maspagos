@@ -10,7 +10,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { OpenIdConfiguration } from 'angular-auth-oidc-client';
 import { filter, Subscription } from 'rxjs';
 
-import { AuthSessionFacade } from 'mma-sso-session-guard';
+import { AuthSessionFacade, SsoSessionGuardService } from 'mma-sso-session-guard';
 import { environment } from '../environments/environment';
 
 // Si tu tipo está exportado por la lib, usalo desde ahí.
@@ -52,46 +52,49 @@ export class App implements OnInit, OnDestroy {
 
   refreshing = signal(false);
 
-  private readonly router = inject(Router);
   private readonly auth = inject(AuthSessionFacade);
+  private readonly router = inject(Router);
+  private readonly ssoGuard = inject(SsoSessionGuardService);
 
   private subs: Subscription[] = [];
 
   ngOnInit(): void {
-    // 1) bootstrap del facade (esto DEBE disparar verificación de sesión)
-    this.auth.bootstrap();
+    // 1) ✅ restore deep-link: suscribirse primero
+    this.subs.push(
+      this.auth.onLogin$.subscribe(() => {
+        const url = this.ssoGuard.popReturnUrl();
+        if (!url) return;
 
-    // 2) state (TODO sale de acá)
+        const current = window.location.pathname + window.location.search;
+        if (current === url) return;
+
+        setTimeout(() => this.router.navigateByUrl(url), 0);
+      })
+    );
+
+    // 2) state
     this.subs.push(
       this.auth.state$.subscribe((s: AuthSessionState) => {
         this.isAuthenticated.set(!!s.isAuthenticated);
-
         if (s.config) {
           this.config.set(s.config);
           this.clientLabel.set(this.computeClientLabelFromState(s));
         } else {
           this.clientLabel.set('...');
         }
-
         this.accessToken.set(s.accessToken ?? '');
         this.accessPayload.set(s.accessPayload ?? null);
-
         this.idToken.set(s.idToken ?? '');
         this.idPayload.set(s.idPayload ?? null);
-
         this.userInfo.set(s.userInfo ?? null);
         this.userInfoLoadedAt.set(s.userInfoLoadedAt ?? null);
       })
     );
 
-    // 3) (opcional) currentPath para UI
-    this.currentPath.set(window.location.pathname || '/');
-    this.subs.push(
-      this.router.events
-        .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-        .subscribe(e => this.currentPath.set(e.urlAfterRedirects || '/'))
-    );
+    // 3) ✅ bootstrap al final
+    void this.auth.bootstrapOnce().catch(() => {});
   }
+
 
   ngOnDestroy(): void {
     for (const s of this.subs) s.unsubscribe();
