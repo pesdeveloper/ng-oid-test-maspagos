@@ -8,7 +8,7 @@ SPA Angular con autenticación OIDC centralizada y monitoreo activo de sesión S
 -   **Client**: `js_maspagos_client`
 -   **Flow**: Code Flow + PKCE.
 -   **Redirect URL**: `window.location.origin` (Raíz).
--   **Scopes**: `openid profile email phone offline_access ingresos`.
+-   **Scopes**: `openid profile email phone offline_access ingresos tramites`.
 -   **Key Settings**:
     -   `issValidationOff`: `true`
     -   `strictIssuerValidationOnWellKnownRetrievalOff`: `true`
@@ -24,7 +24,8 @@ Se utiliza la librería `mma-sso-session-guard` configurada en `app.config.ts` p
 2.  **Eventos**: `pageshow`.
 3.  **Recuperación**: Modo `promptNone`.
 4.  **Seguridad**: Integración con Antiforgery tokens (`/antiforgery/token`, run: `beforePing`).
-5.  **Allowed Return URLs**: `['/datos']`.
+5.  **Inicialización**: `autoBootstrap: false` (para evitar doble inicialización con el component App).
+6.  **Allowed Return URLs**: `['/datos']`.
 
 ## Security
 -   **Interceptors**:
@@ -38,7 +39,7 @@ Se utiliza la librería `mma-sso-session-guard` configurada en `app.config.ts` p
 | `/` | `Home` | Activo | Dashboard simple |
 | `/logout` | `Logout` | Activo | Lógica de limpieza y redirección |
 | `/tasas` | `Tasas` | Inactivo | (Lógica comentada) Consulta de deuda/tasas |
-| `/datos/:sujeto/:cuenta` | `Datos` | Activo | Visualización de parámetros de ruta y query |
+| `/datos/:sujeto/:cuenta` | `Datos` | Activo | Protegida por `ShieldGuard`. Visualización de parámetros de ruta y query |
 
 ## Core Services
 -   **App Component**: Orquestador principal. Inicializa `AuthSessionFacade` (SSO Guard). Maneja navegación externa (Habilitaciones, User Profile).

@@ -23,16 +23,22 @@ export class App implements OnInit, OnDestroy {
   isAuthenticated = signal(false);
   config = signal<Partial<OpenIdConfiguration>>({});
   accessToken = signal<string>('');
+  accessPayload = signal<any | null>(null);
+  idToken = signal<string>('');
+  idPayload = signal<any | null>(null);
   userInfo = signal<any | null>(null);
+  userInfoLoadedAt = signal<Date | null>(null);
   // ...
 
   ngOnInit(): void {
-    this.auth.bootstrap();
     this.subs.push(
       this.auth.state$.subscribe((s: AuthSessionState) => {
         // Actualiza signals con el estado de la sesión
       })
     );
+
+    // ✅ bootstrap al final
+    void this.auth.bootstrapOnce().catch(() => {});
   }
   
   // Actions

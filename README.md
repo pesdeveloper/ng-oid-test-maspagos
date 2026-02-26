@@ -19,7 +19,7 @@ Esta aplicación utiliza la librería `mma-sso-session-guard`, la cual se distri
 Para instalar la librería por primera vez desde el archivo local `mma-sso-session-guard-1.0.0.tgz` ubicado en la raíz (o ajusta la ruta según corresponda):
 
 ```bash
-npm install ./mma-sso-session-guard-1.0.0.tgz
+npm install ../ng-libs-local/mma-sso-session-guard-1.0.0.tgz
 ```
 
 ### Actualización
@@ -38,7 +38,7 @@ Si has generado una nueva versión del paquete `.tgz` y necesitas actualizarla e
 
 3.  **Instalar la nueva versión:**
     ```bash
-    npm install ./mma-sso-session-guard-1.0.0.tgz
+    npm install ../ng-libs-local/mma-sso-session-guard-1.0.0.tgz
     ```
 
 ### Desinstalación
