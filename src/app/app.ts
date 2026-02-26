@@ -34,49 +34,14 @@ import { AuthSessionState } from 'mma-sso-session-guard';
   styleUrl: './app.scss',
 })
 export class App implements OnInit, OnDestroy {
-  clientLabel = signal('...');
 
-  isAuthenticated = signal(false);
-  config = signal<Partial<OpenIdConfiguration>>({});
-
-  accessToken = signal<string>('');
-  accessPayload = signal<any | null>(null);
-
-  idToken = signal<string>('');
-  idPayload = signal<any | null>(null);
-
-  userInfo = signal<any | null>(null);
-  userInfoLoadedAt = signal<Date | null>(null);
-
-  currentPath = signal<string>('/');
-
-  refreshing = signal(false);
-
-  private readonly auth = inject(AuthSessionFacade);
+  readonly auth = inject(AuthSessionFacade);
   private readonly router = inject(Router);
   private readonly ssoGuard = inject(SsoSessionGuardService);
 
   private subs: Subscription[] = [];
 
   ngOnInit(): void {
-    this.subs.push(
-      this.auth.state$.subscribe((s: AuthSessionState) => {
-        this.isAuthenticated.set(!!s.isAuthenticated);
-        if (s.config) {
-          this.config.set(s.config);
-          this.clientLabel.set(this.computeClientLabelFromState(s));
-        } else {
-          this.clientLabel.set('...');
-        }
-        this.accessToken.set(s.accessToken ?? '');
-        this.accessPayload.set(s.accessPayload ?? null);
-        this.idToken.set(s.idToken ?? '');
-        this.idPayload.set(s.idPayload ?? null);
-        this.userInfo.set(s.userInfo ?? null);
-        this.userInfoLoadedAt.set(s.userInfoLoadedAt ?? null);
-      })
-    );
-
     // ✅ bootstrap al final
     void this.auth.bootstrapOnce().catch(() => {});
   }
@@ -93,17 +58,9 @@ export class App implements OnInit, OnDestroy {
   login(): void { this.auth.login(); }
   logout(): void { this.auth.logout(); }
 
-  refreshSession(): void {
-    if (this.refreshing()) return;
-    this.refreshing.set(true);
 
-    this.auth.refresh().subscribe({
-      next: _ => this.refreshing.set(false),
-      error: err => {
-        this.refreshing.set(false);
-        console.error('Refresh ERROR', err);
-      },
-    });
+  refreshSession(): void {
+    this.auth.refresh().subscribe();
   }
 
   goUserProfile(): void { this.auth.goUserProfile(); }
@@ -118,9 +75,37 @@ export class App implements OnInit, OnDestroy {
   // --------------------------
   // Navegación
   // --------------------------
-  goHabilitaciones(): void {
-    window.location.href = environment.externalSites.habilitacionesSite;
+
+  get urlConDeepLink(): string {
+    return environment.externalSites.urlConDeepLink;
   }
+  get urlConDeepLinkInvalido(): string {
+    return environment.externalSites.urlConDeepLinkInvalido;
+  }
+  get urlSinDeepLink(): string {
+    return environment.externalSites.urlSinDeepLink;
+  }
+  get urlSbMasPagosConDeepLink(): string {
+    return environment.externalSites.urlSbMasPagosConDeepLink;
+  }
+
+
+  goUrlConDeepLink(): void {
+    window.location.href = environment.externalSites.urlConDeepLink;
+  }
+
+  goUrlConDeepLinkInvalido(): void {
+    window.location.href = environment.externalSites.urlConDeepLinkInvalido;
+  }
+
+  goUrlSinDeepLink(): void {
+    window.location.href = environment.externalSites.urlSinDeepLink;
+  }
+
+  goUrlSbMasPagosConDeepLink(): void {
+    window.location.href = environment.externalSites.urlSbMasPagosConDeepLink;
+  }
+
 
   goHome(): void { void this.router.navigate(['/']); }
 
@@ -147,9 +132,7 @@ export class App implements OnInit, OnDestroy {
     if ((this.auth as any).clearUserInfo) {
       (this.auth as any).clearUserInfo();
     }
-    if ((this.auth as any).refreshUserInfo) {
-      (this.auth as any).refreshUserInfo();
-    }
+    this.auth.refreshUserInfo();
   }
 
   // --------------------------
@@ -165,16 +148,5 @@ export class App implements OnInit, OnDestroy {
     try { await navigator.clipboard.writeText(JSON.stringify(obj, null, 2)); } catch { /* no-op */ }
   }
 
-  // --------------------------
-  // Label
-  // --------------------------
-  private computeClientLabelFromState(s: AuthSessionState): string {
-    const idp: any = s.idPayload ?? null;
-    if (idp?.client_name) return String(idp.client_name);
-    if (idp?.azp) return String(idp.azp);
 
-    const cfg: any = s.config ?? null;
-    const clientId = cfg?.clientId ?? cfg?.client_id ?? null;
-    return clientId ? String(clientId) : 'No client id';
-  }
 }
