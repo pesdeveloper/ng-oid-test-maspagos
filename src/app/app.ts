@@ -59,20 +59,6 @@ export class App implements OnInit, OnDestroy {
   private subs: Subscription[] = [];
 
   ngOnInit(): void {
-    // 1) ✅ restore deep-link: suscribirse primero
-    this.subs.push(
-      this.auth.onLogin$.subscribe(() => {
-        const url = this.ssoGuard.popReturnUrl();
-        if (!url) return;
-
-        const current = window.location.pathname + window.location.search;
-        if (current === url) return;
-
-        setTimeout(() => this.router.navigateByUrl(url), 0);
-      })
-    );
-
-    // 2) state
     this.subs.push(
       this.auth.state$.subscribe((s: AuthSessionState) => {
         this.isAuthenticated.set(!!s.isAuthenticated);
@@ -91,7 +77,7 @@ export class App implements OnInit, OnDestroy {
       })
     );
 
-    // 3) ✅ bootstrap al final
+    // ✅ bootstrap al final
     void this.auth.bootstrapOnce().catch(() => {});
   }
 

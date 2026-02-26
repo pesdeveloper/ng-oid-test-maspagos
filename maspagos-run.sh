@@ -8,7 +8,7 @@ HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-4203}"
 
 # Path a la lib local (ajustalo si tu repo tiene otra estructura)
-LIB_PATH="${LIB_PATH:-../ng-libs-local/mma-sso-session-guard}"
+LIB_PATH="../ng-libs-local/mma-sso-session-guard-1-0.0.tgz"
 
 # Si usás nvm en Mac
 command -v nvm >/dev/null 2>&1 && nvm use || true
@@ -19,12 +19,8 @@ echo "==> Repo: $(pwd)"
 echo "==> npm install (app deps)"
 npm ci || npm install
 
-if [[ -d "$LIB_PATH" ]]; then
-  echo "==> Installing (FORCED) local lib from: $LIB_PATH"
-  npm install "$LIB_PATH" --force
-else
-  echo "==> WARN: LIB_PATH not found: $LIB_PATH (skipping local lib install)"
-fi
+echo "==> Installing (FORCED) local lib from: $LIB_PATH"
+npm install "$LIB_PATH" --force
 
 echo "==> ng build"
 npx ng build
