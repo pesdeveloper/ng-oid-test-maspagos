@@ -14,18 +14,18 @@ export const authConfig: PassedInitialConfig = {
             postLoginRoute: 'tasas',
             //OJO startCheckSession: false,
             responseType: 'code',
-            silentRenew: false,
+            silentRenew: true,
             useRefreshToken: true,
             ignoreNonceAfterRefresh: true,
             triggerRefreshWhenIdTokenExpired: true,
-            autoUserInfo: true, 
+            autoUserInfo: true,
             renewUserInfoAfterTokenRenew: true,
-            silentRenewUrl: `${window.location.origin}/silent-renew.html`,
+            //silentRenewUrl: `${window.location.origin}/silent-renew.html`,
             renewTimeBeforeTokenExpiresInSeconds: 120,
             logLevel: LogLevel.Debug,
             // 🔑 Muy importante: el interceptor solo agrega el token si la URL empieza con uno de estos prefijos
             // secureRoutes: [
             //   'https://sb-comon-api.malvinasargentinas.gob.ar',
-            // ],            
+            // ],
         }
 }
